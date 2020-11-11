@@ -42,7 +42,14 @@ class DigitNet(pl.LightningModule):
         # forward pass
         predict_outputs = self(images)
         loss = F.cross_entropy(predict_outputs, labels)
-        return {"loss": loss}
+
+        # tensor board loss
+        tensorboard_logs = {"train_loss": loss}
+        # tensorboard_logs = self.logger.experiment
+        return {"loss": loss, "log": tensorboard_logs}
+        # return self.log(
+        #     "train_loss", loss, on_step=True, on_epoch=True, prog_bar=True, logger=True
+        # )
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=learning_rate)
@@ -60,10 +67,43 @@ class DigitNet(pl.LightningModule):
         )
         return train_loader
 
+    def validation_step(self, batch, batch_idx):
+        # training_step defined the train loop. It is independent of forward
+        images, labels = batch
+        # 100, 1, 28, 28
+        # 100, 784 (-1 so that tensor can find automatically for us)
+        images = images.reshape(-1, 28 * 28)
+        labels = labels
+
+        # forward pass
+        predict_outputs = self(images)
+        loss = F.cross_entropy(predict_outputs, labels)
+
+        return {"val_loss": loss}
+
+    def val_dataloader(self):
+        val_dataset = torchvision.datasets.MNIST(
+            root="./data",
+            train=True,
+            transform=transforms.ToTensor(),
+            download=True,
+        )
+        val_loader = torch.utils.data.DataLoader(
+            dataset=val_dataset, batch_size=batch_size, shuffle=False, num_workers=4
+        )
+        return val_loader
+
+    def validation_epoch_end(self, predict_outputs):
+        """Called when the val epoch ends."""
+        avg_loss = torch.stack([x["val_loss"] for x in predict_outputs]).mean()
+        # tensor board loss
+        tensorboard_logs = {"tavg_loss": avg_loss}
+        return {"val_loss": avg_loss, "log": tensorboard_logs}
+
 
 if __name__ == "__main__":
     # set up a trainer
-    trainer = Trainer(max_epochs=num_epochs, fast_dev_run=False)
+    trainer = Trainer(gpus=1, max_epochs=num_epochs, fast_dev_run=False)
     # set up model
     model = DigitNet(input_size, hidden_size, num_classes)
     # fit to trainer

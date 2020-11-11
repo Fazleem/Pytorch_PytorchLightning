@@ -170,3 +170,25 @@ Pipeline for Deep Learning model
 4. Training Loop - batch training (feed forward, update weights, update weights)
 5. Model Evaluation
 6. GPU Support
+
+
+Custom Dataset
+---------------
+torch.utils.data.Dataset is an abstract class of Dataset
+Override __len__ and __getitem__
+read csv in __init__ and reading of images or indetail in __getitem__
+"""
+
+
+class A(Dataset):
+
+    # initialize your data and download
+    # step 1: Download, read data
+    def __init__(self):
+        pass
+
+    def __len__(self):
+        return
+
+    def __getitem__(self):
+        return
